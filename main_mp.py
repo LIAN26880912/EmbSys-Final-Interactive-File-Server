@@ -1,4 +1,4 @@
-import threading     
+import multiprocessing as mp
 from queue import Queue, Empty
 from FileServerLib import FileServerLib
 from watchdog.observers import Observer     # Ref: https://stackoverflow.com/questions/57840072/how-to-check-for-new-files-in-a-folder-in-python
@@ -9,39 +9,32 @@ from Audio import Audio
 import keyboard
 import time
 
+""" This version may have a better real time performance, but it also has a  loading,
+    which may make it even slower than threading ver. if the # of cores isn't enough.
+"""
 
-locks = {'file_created':threading.Lock(), 'file_deleted':threading.Lock(), 'end':threading.Lock(), 'falling':threading.Lock(), 'music_stop':threading.Lock()}
-flags = {'file_created':False, 'file_deleted':False, 'end':False, 'falling':False, 'music_stop':False}
-message_queue = Queue()
-music_semaphore = threading.Semaphore(0)
+
 TIME_OUT = 1
-SLEEP_DUR = 0.5     # Sleep to avoid starvation
+SLEEP_DUR = 0     # Don't even need to sleep on my PC
 
 # Define a signal handler that handle ctrl+c signal
-def end(signum, frame):
+def end(flags):
     flags['end'] = True
     flags['music_stop'] = True
-    print("Ending Threads...")
-# SIGINT means ctrl+c in linux
-signal.signal(signal.SIGINT, end)       # Didn't work in Windows sometimes
+    print("Ending Processs...")
 
 # Define a signal handler that handle start music button
-def music_start(signum, frame):
+def music_start(music_semaphore):
     print("Starting music mode...")
     music_semaphore.release()
-# SIGUSR1 means a user defined signal in linux
-#signal.signal(signal.SIGUSR1, music_start)
 
 # Define a signal handler that handle music button
-def music_stop(signum, frame):
+def music_stop(flags):
     print("Terminating music mode...")
-    with locks['music_stop']:
-        flags['music_stop'] = True
-# SIGUSR2 means another user defined signal in linux
-#signal.signal(signal.SIGUSR2, music_stop)
+    flags['music_stop'] = True
 
 # Just for safe, I wrote a function works with keyboard instead of signal
-def keyboard_sense():
+def keyboard_sense(folder_path, locks, flags, message_queue, music_semaphore):
     music_begin = 'y'
     music_end = 't'
     interrupt = 'z'
@@ -54,11 +47,11 @@ def keyboard_sense():
             print("End keyboard sensing.")
             break
         if keyboard.is_pressed(music_begin):
-            music_start(0,0)
+            music_start(music_semaphore)
         if keyboard.is_pressed(music_end):
-            music_stop(0,0)
+            music_stop(flags)
         if keyboard.is_pressed(interrupt):
-            end(0,0)
+            end(flags)
 
 def animation_end() -> None:
     """Not defined yet.
@@ -138,8 +131,8 @@ def yt_play_video_with_transcript(video_info):
     else:   # Failed playing
         print("Failed to play the video")
     
-def audio_mode():
-    # Thread main loop
+def audio_mode(folder_path, locks, flags, message_queue, music_semaphore):
+    # Process main loop
     print('Start music')
     while True:
         # Break or not
@@ -162,7 +155,7 @@ def audio_mode():
         yt_play_video_with_transcript(video_info)
 
 
-def display_pet():
+def display_pet(folder_path, locks, flags, message_queue, music_semaphore):
     print('Start pet')
     while True:
         time.sleep(SLEEP_DUR)
@@ -197,7 +190,7 @@ def display_pet():
             animation_file_deleted() 
         animation_waiting()
         
-def display_message():
+def display_message(folder_path, locks, flags, message_queue, music_semaphore):
     print('Start message')
     while True:
         # Break or not
@@ -256,7 +249,7 @@ class MyHandler(FileSystemEventHandler):
         message_queue.put(message)
 
 
-def monitor_thread(folder_path):
+def monitor_Process(folder_path, locks, flags, message_queue, music_semaphore):
     """Monitor the folder_path and check if there're any files created.
 
     Args:
@@ -280,35 +273,43 @@ def monitor_thread(folder_path):
 if __name__ == "__main__":
     # TODO: Add IMU related functions & (probably) https request sender.
     
-    
+
+    mng = mp.Manager()
+    locks = mng.dict({'file_created':mng.Lock(), 'file_deleted':mng.Lock(), 'end':mng.Lock(), 'falling':mng.Lock(), 'music_stop':mng.Lock()})
+    flags = mng.dict({'file_created':False, 'file_deleted':False, 'end':False, 'falling':False, 'music_stop':False})
+    message_queue = mp.Queue()
+    music_semaphore = mp.Semaphore(0)
+
+
     folder_path = "."
     folder_path = os.path.abspath(folder_path)
-    # Create file_monitor thread
-    file_monitor_thread = threading.Thread(target=monitor_thread, args=(folder_path,))
-    # Create display_pet thread
-    display_pet_thread = threading.Thread(target=display_pet)
-    # Create display_text thread
-    display_message_thread = threading.Thread(target=display_message)
-    # Create keyboard_sense thread
-    keyboard_sense_thread = threading.Thread(target=keyboard_sense)
-    # Create audio_mode thread
-    audio_mode_thread = threading.Thread(target=audio_mode)
+    # Create file_monitor Process
+    file_monitor_Process = mp.Process(target=monitor_Process, args=(folder_path, locks, flags, message_queue, music_semaphore,))
+    # Create display_pet Process
+    display_pet_Process = mp.Process(target=display_pet, args=(folder_path, locks, flags, message_queue, music_semaphore,))
+    # Create display_text Process
+    display_message_Process = mp.Process(target=display_message, args=(folder_path, locks, flags, message_queue, music_semaphore,))
+    # Create keyboard_sense Process
+    keyboard_sense_Process = mp.Process(target=keyboard_sense, args=(folder_path, locks, flags, message_queue, music_semaphore,))
+    # Create audio_mode Process
+    audio_mode_Process = mp.Process(target=audio_mode, args=(folder_path, locks, flags, message_queue, music_semaphore,))
     
-    # Start threads
-    file_monitor_thread.start()
-    display_pet_thread.start()
-    display_message_thread.start()
-    keyboard_sense_thread.start()
-    audio_mode_thread.start()
+    # Start Processs
+    file_monitor_Process.start()
+    display_pet_Process.start()
+    display_message_Process.start()
+    keyboard_sense_Process.start()
+    audio_mode_Process.start()
     
-    print('----------------------------')
-    print('----------------------------')
-    # Wait until threads end
-    file_monitor_thread.join()
-    display_pet_thread.join()
-    display_message_thread.join()
-    keyboard_sense_thread.join()
-    audio_mode_thread.join()
+    time.sleep(1)
+    print('-------------------------------')
     
-    print("Threads terminated successfully!")
+    # Wait until Processs end
+    file_monitor_Process.join()
+    display_pet_Process.join()
+    display_message_Process.join()
+    keyboard_sense_Process.join()
+    audio_mode_Process.join()
+    
+    print("Processs terminated successfully!")
     sys.exit(0)
