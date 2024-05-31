@@ -1,0 +1,14 @@
+{
+  "name": "Test Notification",
+  "force": true,
+  "icon":3,
+  "moveIcon":true,
+  "repeat":2,
+  "soundfile":1,
+  "data": "Embed System Good",
+  "color": [
+     0,
+     255,
+     255
+  ]
+}

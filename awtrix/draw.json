@@ -1,0 +1,10 @@
+{
+    "draw": [
+      {
+        "type": "text",
+        "string": "Hello",
+        "position": [0, 0],
+        "color": [255, 0, 0]
+      }  ]
+  }
+  
