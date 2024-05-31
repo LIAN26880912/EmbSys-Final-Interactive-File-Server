@@ -141,7 +141,7 @@ def audio_mode(folder_path, flags, message_queue):
         end_flag = flags['end']
         if end_flag:
             print("End music.")
-            breakyyyyyytyyyyyyyyyyytz
+            break
         # Check if the music button has been pressed
         time.sleep(0.5)
         music_start_flag = flags['music_start']
