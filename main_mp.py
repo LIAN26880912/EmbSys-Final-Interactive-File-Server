@@ -19,35 +19,39 @@ SLEEP_DUR = 0     # Don't even need to sleep on my PC
 
 # Define a signal handler that handle ctrl+c signal
 def end(flags):
-    flags['end'] = True
-    flags['music_stop'] = True
-    print("Ending Processs...")
+    if not flags['end'] or not flags['music_stop']:
+        print("Ending Processs...")
+        flags['end'] = True
+        flags['music_stop'] = True
 
 # Define a signal handler that handle start music button
-def music_start(music_semaphore):
-    print("Starting music mode...")
-    music_semaphore.release()
+def music_start(flags):
+    if not flags['music_start']:
+        print("Starting music mode...")
+        flags['music_start'] = True
+        flags['music_stop'] = False
 
 # Define a signal handler that handle music button
 def music_stop(flags):
-    print("Terminating music mode...")
-    flags['music_stop'] = True
+    if not flags['music_stop']:
+        print("Terminating music mode...")
+        flags['music_stop'] = True
+        flags['music_start'] = False
 
 # Just for safe, I wrote a function works with keyboard instead of signal
-def keyboard_sense(folder_path, locks, flags, message_queue, music_semaphore):
+def keyboard_sense(folder_path, flags, message_queue):
     music_begin = 'y'
     music_end = 't'
     interrupt = 'z'
     print('Start keyboard_sense')
-    while True:
+    while True: 
         # Break or not
-        with locks['end']:
-            end_flag = flags['end']
+        end_flag = flags['end']
         if end_flag:
             print("End keyboard sensing.")
             break
         if keyboard.is_pressed(music_begin):
-            music_start(music_semaphore)
+            music_start(flags)
         if keyboard.is_pressed(music_end):
             music_stop(flags)
         if keyboard.is_pressed(interrupt):
@@ -109,11 +113,8 @@ def yt_play_video_with_transcript(video_info):
         print("----------------- Start subscript ---------------------")
         while player.is_playing():
             # Break or not
-            with locks['end']:
-                end_flag = flags['end']
-            # Access locks one-by-one to avoid deadlock
-            with locks['music_stop']:
-                stop_flag = flags['music_stop']
+            end_flag = flags['end']
+            stop_flag = flags['music_stop']
             if end_flag or stop_flag:
                 break
             # Continue to play music(video)
@@ -131,22 +132,27 @@ def yt_play_video_with_transcript(video_info):
     else:   # Failed playing
         print("Failed to play the video")
     
-def audio_mode(folder_path, locks, flags, message_queue, music_semaphore):
+def audio_mode(folder_path, flags, message_queue):
     # Process main loop
     print('Start music')
     while True:
+        flags['music_start'] = False
         # Break or not
-        with locks['end']:
-            end_flag = flags['end']
+        end_flag = flags['end']
         if end_flag:
             print("End music.")
             break
         # Check if the music button has been pressed
-        acked = music_semaphore.acquire(timeout=TIME_OUT)
-        if not acked:
+        time.sleep(0.5)
+        music_start_flag = flags['music_start']
+        if not music_start_flag:
             continue
         # Input a title
-        title = Audio.Speech_to_Text()
+        try:
+            title = Audio.Speech_to_Text()
+        except:
+            print('Error when inputting mic...')
+            continue
         # Search video
         video_info, status = Audio.yt_search_video(title)
         if not status:
@@ -155,14 +161,12 @@ def audio_mode(folder_path, locks, flags, message_queue, music_semaphore):
         yt_play_video_with_transcript(video_info)
 
 
-def display_pet(folder_path, locks, flags, message_queue, music_semaphore):
+def display_pet(folder_path, flags, message_queue):
     print('Start pet')
     while True:
         time.sleep(SLEEP_DUR)
         # Break or not
-        with locks['end']:
-            end_flag = flags['end']
-        
+        end_flag = flags['end']
         # print('Start pet')
         if end_flag:
             print("End displaying pet.")
@@ -173,29 +177,25 @@ def display_pet(folder_path, locks, flags, message_queue, music_semaphore):
             animation_sleeping()
             continue
         # Falling or not
-        with locks['falling']:
-            falling_flag = flags['falling']
+        falling_flag = flags['falling']
         if falling_flag:
             animation_falling()
             continue
         # File created or not
-        with locks['file_created']:
-            file_created_flag = flags['file_created']
+        file_created_flag = flags['file_created']
         if file_created_flag:
             animation_file_created()
         # File deleted or not
-        with locks['file_deleted']:
-            file_deleted_flag = flags['file_deleted']
+        file_deleted_flag = flags['file_deleted']
         if file_deleted_flag:
             animation_file_deleted() 
         animation_waiting()
         
-def display_message(folder_path, locks, flags, message_queue, music_semaphore):
+def display_message(folder_path, flags, message_queue):
     print('Start message')
     while True:
         # Break or not
-        with locks['end']:
-            end_flag = flags['end']
+        end_flag = flags['end']
         if end_flag:
             print("End displaying message.")
             break
@@ -218,8 +218,7 @@ class MyHandler(FileSystemEventHandler):
     
     def on_deleted(self, event: FileSystemEvent) -> None:
         # Acquire the lock and set the flag
-        with locks['file_deleted']:
-            flags['file_deleted'] = True
+        flags['file_deleted'] = True
         # Determine and print system message
         message = None
         new_dir = event.src_path.split('\\')[-1]
@@ -234,8 +233,7 @@ class MyHandler(FileSystemEventHandler):
         
     def on_created(self, event):
         # Acquire the lock and set the flag
-        with locks['file_created']:
-            flags['file_created'] = True
+        flags['file_created'] = True
         # Determine and print system message
         message = None
         new_dir = event.src_path.split('\\')[-1]
@@ -249,7 +247,7 @@ class MyHandler(FileSystemEventHandler):
         message_queue.put(message)
 
 
-def monitor_Process(folder_path, locks, flags, message_queue, music_semaphore):
+def monitor_Process(folder_path, flags, message_queue):
     """Monitor the folder_path and check if there're any files created.
 
     Args:
@@ -263,8 +261,7 @@ def monitor_Process(folder_path, locks, flags, message_queue, music_semaphore):
 
     print('Start monitor')
     while True:
-        with locks['end']:
-            end_flag = flags['end']
+        end_flag = flags['end']
         time.sleep(SLEEP_DUR)     # Sleep to avoid starvation
         if end_flag:
             print(f"Stop monitoring {folder_path}.")
@@ -275,24 +272,22 @@ if __name__ == "__main__":
     
 
     mng = mp.Manager()
-    locks = mng.dict({'file_created':mng.Lock(), 'file_deleted':mng.Lock(), 'end':mng.Lock(), 'falling':mng.Lock(), 'music_stop':mng.Lock()})
-    flags = mng.dict({'file_created':False, 'file_deleted':False, 'end':False, 'falling':False, 'music_stop':False})
+    flags = mng.dict({'file_created':False, 'file_deleted':False, 'end':False, 'falling':False, 'music_stop':False, 'music_start':False})
     message_queue = mp.Queue()
-    music_semaphore = mp.Semaphore(0)
 
 
     folder_path = "."
     folder_path = os.path.abspath(folder_path)
     # Create file_monitor Process
-    file_monitor_Process = mp.Process(target=monitor_Process, args=(folder_path, locks, flags, message_queue, music_semaphore,))
+    file_monitor_Process = mp.Process(target=monitor_Process, args=(folder_path, flags, message_queue,))
     # Create display_pet Process
-    display_pet_Process = mp.Process(target=display_pet, args=(folder_path, locks, flags, message_queue, music_semaphore,))
+    display_pet_Process = mp.Process(target=display_pet, args=(folder_path, flags, message_queue,))
     # Create display_text Process
-    display_message_Process = mp.Process(target=display_message, args=(folder_path, locks, flags, message_queue, music_semaphore,))
+    display_message_Process = mp.Process(target=display_message, args=(folder_path, flags, message_queue,))
     # Create keyboard_sense Process
-    keyboard_sense_Process = mp.Process(target=keyboard_sense, args=(folder_path, locks, flags, message_queue, music_semaphore,))
+    keyboard_sense_Process = mp.Process(target=keyboard_sense, args=(folder_path, flags, message_queue,))
     # Create audio_mode Process
-    audio_mode_Process = mp.Process(target=audio_mode, args=(folder_path, locks, flags, message_queue, music_semaphore,))
+    audio_mode_Process = mp.Process(target=audio_mode, args=(folder_path, flags, message_queue,))
     
     # Start Processs
     file_monitor_Process.start()
