@@ -131,7 +131,7 @@ def yt_play_video_with_transcript(video_info):
         # player.stop()
     else:   # Failed playing
         print("Failed to play the video")
-    
+        
 def audio_mode(folder_path, flags, message_queue):
     # Process main loop
     print('Start music')
@@ -212,7 +212,8 @@ class MyHandler(FileSystemEventHandler):
     def __init__(self, path):
         super().__init__()
         self.path = path
-    
+        self.last_modified = time.time()
+
     def on_any_event(self, event):
         pass
     
@@ -246,6 +247,10 @@ class MyHandler(FileSystemEventHandler):
             print(message)
         message_queue.put(message)
 
+    def on_modified(self, event):
+        if not event.is_directory and time.time()-self.last_modified > 1:
+            print(f"File modified: {event.src_path}")
+
 
 def monitor_Process(folder_path, flags, message_queue):
     """Monitor the folder_path and check if there're any files created.
@@ -266,6 +271,9 @@ def monitor_Process(folder_path, flags, message_queue):
         if end_flag:
             print(f"Stop monitoring {folder_path}.")
             break
+
+def IMU_sense(flags):
+    pass
 
 if __name__ == "__main__":
     # TODO: Add IMU related functions & (probably) https request sender.

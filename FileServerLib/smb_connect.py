@@ -5,7 +5,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 # Define SMB connection parameters
-smb_server = "192.168.50.139"
+smb_server = "192.168.0.63"
 smb_share = "SharePi"
 username = "pi"
 password = "abc123"
@@ -30,6 +30,12 @@ def unmount_smb():
 
 # Event handler class for watchdog
 class SMBEventHandler(FileSystemEventHandler):
+    def __init__(self):
+        super().__init__()
+        # self.path = path
+        self.last_modified = time.time()    # To avoid on_modified ran twice
+
+
     def on_created(self, event):
         if not event.is_directory:
             print(f"File created: {event.src_path}")
@@ -39,7 +45,9 @@ class SMBEventHandler(FileSystemEventHandler):
             print(f"File deleted: {event.src_path}")
 
     def on_modified(self, event):
-        if not event.is_directory:
+        cur_time = time.time()
+        if not event.is_directory and cur_time-self.last_modified > 0.5:
+            self.last_modified = cur_time
             print(f"File modified: {event.src_path}")
 
     def on_moved(self, event):
@@ -61,7 +69,12 @@ def main():
     observer = Observer()
     observer.schedule(event_handler, path=mount_point, recursive=True)
     observer.start()
-
+	
+    # Just for testing
+    time.sleep(0.5)
+    with open(mount_point+'/test.txt', 'w') as f:
+        f.write('good')
+    print('File writed')
     try:
         while True:
             time.sleep(1)

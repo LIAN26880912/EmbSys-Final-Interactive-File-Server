@@ -2,6 +2,21 @@ from watchdog.observers import Observer     # Ref: https://stackoverflow.com/que
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 import os
 import psutil       # Ref: https://stackoverflow.com/questions/16808721/check-network-connection-from-an-ip-address-with-python
+import libmpu9250, numpy as np
+
+def IMU_sense(flags):
+    # Not finish
+    mpu9250 = libmpu9250.MPU9250()
+    accel_bias = mpu9250.readAccel()
+    accel_bias['z'] -= 1
+    
+    while True:
+        end_flag = flags['end']
+        if end_flag:
+            print("End IMU sensing")
+            break
+        accel_cur = mpu9250.readAccel()
+        
 
 def get_remote_ips():
     """Get all the remote IPs to the host currently
