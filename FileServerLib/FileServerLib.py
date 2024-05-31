@@ -127,7 +127,7 @@ if __name__ == "__main__":
     print(current_remote_ips)
     print(check_no_connections())
     
-    folder_path = '.'
+    folder_path = 'smb://192.168.50.139'
     folder_path = os.path.abspath(folder_path)
     print(f"------------------- Start monitoring {folder_path} -------------------")
     try:        # Use signal handler for simplicity. (but I just don't wanna)
