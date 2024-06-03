@@ -39,7 +39,12 @@ def music_stop(flags):
         flags['music_start'] = False
 
 # Just for safe, I wrote a function works with keyboard instead of signal
-def keyboard_sense(folder_path, flags, message_queue):
+def keyboard_sense(flags):
+    """ Monitor the input from keyboard. It is crucial for terminating the whole process.
+
+    Args:
+        flags (dict): shared flags
+    """
     music_begin = 'y'
     music_end = 't'
     interrupt = 'z'
@@ -68,10 +73,16 @@ def animation_sleeping() -> None:
 def animation_file_created() -> None:
     """Not defined yet.
     """
+    # ......
+    
+    flags['file_created'] = False
     pass
 def animation_file_deleted() -> None:
     """Not defined yet.
     """
+    # ......
+    
+    flags['file_deleted'] = False
     pass
 def animation_waiting() -> None:
     """Not defined yet.
@@ -132,7 +143,13 @@ def yt_play_video_with_transcript(video_info):
     else:   # Failed playing
         print("Failed to play the video")
         
-def audio_mode(folder_path, flags, message_queue):
+def audio_mode(flags):
+    """ Audio subprocess. It will start running at the beginning and pool the "music_start" flag.
+        Once the flag is set, it will start fetching mic input.
+
+    Args:
+        flags (dict): shared flags
+    """
     # Process main loop
     print('Start music')
     while True:
@@ -161,7 +178,12 @@ def audio_mode(folder_path, flags, message_queue):
         yt_play_video_with_transcript(video_info)
 
 
-def display_pet(folder_path, flags, message_queue):
+def display_pet(flags):
+    """Determine the pet's status on the screen. (maybe by changing icon or something)
+
+    Args:
+        flags (dict): shared flags
+    """
     print('Start pet')
     while True:
         time.sleep(SLEEP_DUR)
@@ -191,7 +213,13 @@ def display_pet(folder_path, flags, message_queue):
             animation_file_deleted() 
         animation_waiting()
         
-def display_message(folder_path, flags, message_queue):
+def display_message(flags, message_queue):
+    """Get a message from the queue and show it on the screen.
+
+    Args:
+        flags (dict): Shared flags
+        message_queue (mp.queue): A synchronized queue to store message
+    """
     print('Start message')
     while True:
         # Break or not
@@ -272,9 +300,6 @@ def monitor_Process(folder_path, flags, message_queue):
             print(f"Stop monitoring {folder_path}.")
             break
 
-def IMU_sense(flags):
-    pass
-
 if __name__ == "__main__":
     # TODO: Add IMU related functions & (probably) https request sender.
     
@@ -289,13 +314,13 @@ if __name__ == "__main__":
     # Create file_monitor Process
     file_monitor_Process = mp.Process(target=monitor_Process, args=(folder_path, flags, message_queue,))
     # Create display_pet Process
-    display_pet_Process = mp.Process(target=display_pet, args=(folder_path, flags, message_queue,))
+    display_pet_Process = mp.Process(target=display_pet, args=(flags,))
     # Create display_text Process
-    display_message_Process = mp.Process(target=display_message, args=(folder_path, flags, message_queue,))
+    display_message_Process = mp.Process(target=display_message, args=(flags, message_queue,))
     # Create keyboard_sense Process
-    keyboard_sense_Process = mp.Process(target=keyboard_sense, args=(folder_path, flags, message_queue,))
+    keyboard_sense_Process = mp.Process(target=keyboard_sense, args=(flags,))
     # Create audio_mode Process
-    audio_mode_Process = mp.Process(target=audio_mode, args=(folder_path, flags, message_queue,))
+    audio_mode_Process = mp.Process(target=audio_mode, args=(flags,))
     
     # Start Processs
     file_monitor_Process.start()
