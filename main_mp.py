@@ -56,10 +56,13 @@ def keyboard_sense(flags):
             print("End keyboard sensing.")
             break
         if keyboard.is_pressed(music_begin):
+            print('Press y')
             music_start(flags)
         if keyboard.is_pressed(music_end):
+            print('Press t')
             music_stop(flags)
         if keyboard.is_pressed(interrupt):
+            print('Press z')
             end(flags)
 
 def animation_end() -> None:
