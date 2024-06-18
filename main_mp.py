@@ -8,6 +8,7 @@ import signal
 from Audio import Audio
 import keyboard
 import time
+from sshkeyboard import listen_keyboard
 
 """ This version may have a better real time performance, but it also has a  loading,
     which may make it even slower than threading ver. if the # of cores isn't enough.
@@ -16,6 +17,19 @@ import time
 
 TIME_OUT = 1
 SLEEP_DUR = 0     # Don't even need to sleep on my PC
+
+def press(key, queue):
+    # if key == "up":
+    #     print("up pressed")
+    # elif key == "down":
+    #     print("down pressed")
+    # elif key == "left":
+    #     print("left pressed")
+    # elif key == "right":
+    #     print("right pressed")
+    if key in ["y", "t", "z"]:
+        print(f"{key} pressed")
+        queue.put(key)
 
 # Define a signal handler that handle ctrl+c signal
 def end(flags):
@@ -39,7 +53,7 @@ def music_stop(flags):
         flags['music_start'] = False
 
 # Just for safe, I wrote a function works with keyboard instead of signal
-def keyboard_sense(flags):
+def keyboard_sense(flags, queue):
     """ Monitor the input from keyboard. It is crucial for terminating the whole process.
 
     Args:
@@ -55,15 +69,20 @@ def keyboard_sense(flags):
         if end_flag:
             print("End keyboard sensing.")
             break
-        if keyboard.is_pressed(music_begin):
-            print('Press y')
-            music_start(flags)
-        if keyboard.is_pressed(music_end):
-            print('Press t')
-            music_stop(flags)
-        if keyboard.is_pressed(interrupt):
-            print('Press z')
-            end(flags)
+        try:
+            key = queue.get(timeout=0.1)
+            if key == music_begin:
+                print('y is pressed')
+                music_start(flags)
+            if key == music_end:
+                print('t is pressed')
+                music_stop(flags)
+            if key == interrupt:
+                print('z is pressed')
+                end(flags)
+        except Empty:
+            # print('There are no keyboard input')
+            pass
 
 def animation_end() -> None:
     """Not defined yet.
@@ -156,7 +175,7 @@ def audio_mode(flags):
     # Process main loop
     print('Start music')
     while True:
-        flags['music_start'] = False
+        print(f'music start flag: {flags["music_start"]}')
         # Break or not
         end_flag = flags['end']
         if end_flag:
@@ -169,16 +188,19 @@ def audio_mode(flags):
             continue
         # Input a title
         try:
+            print('Please say any name of song.')
             title = Audio.Speech_to_Text()
+            # Search video
+            video_info, status = Audio.yt_search_video(title)
+            if not status:
+                continue
+            # Play video
+            yt_play_video_with_transcript(video_info)
         except:
             print('Error when inputting mic...')
             continue
-        # Search video
-        video_info, status = Audio.yt_search_video(title)
-        if not status:
-            continue
-        # Play video
-        yt_play_video_with_transcript(video_info)
+        finally:
+            flags['music_start'] = False
 
 
 def display_pet(flags):
@@ -253,7 +275,7 @@ class MyHandler(FileSystemEventHandler):
         flags['file_deleted'] = True
         # Determine and print system message
         message = None
-        new_dir = event.src_path.split('\\')[-1]
+        new_dir = event.src_path.split('/')[-1]
         num_deleted = sum([len(files) for r, d, files in os.walk(new_dir)])
         if num_deleted <= 1:
             message = f"{new_dir} has been deleted."
@@ -268,7 +290,7 @@ class MyHandler(FileSystemEventHandler):
         flags['file_created'] = True
         # Determine and print system message
         message = None
-        new_dir = event.src_path.split('\\')[-1]
+        new_dir = event.src_path.split('/')[-1]
         num_created = sum([len(files) for r, d, files in os.walk(new_dir)])
         if num_created <= 1:
             message = f"{new_dir} has been created."
@@ -304,12 +326,15 @@ def monitor_Process(folder_path, flags, message_queue):
             break
 
 if __name__ == "__main__":
+    print('good')
     # TODO: Add IMU related functions & (probably) https request sender.
     
+    # listen_keyboard(on_press=press)
 
     mng = mp.Manager()
     flags = mng.dict({'file_created':False, 'file_deleted':False, 'end':False, 'falling':False, 'music_stop':False, 'music_start':False})
     message_queue = mp.Queue()
+    key_queue = mp.Queue()
 
 
     folder_path = "."
@@ -321,9 +346,9 @@ if __name__ == "__main__":
     # Create display_text Process
     display_message_Process = mp.Process(target=display_message, args=(flags, message_queue,))
     # Create keyboard_sense Process
-    keyboard_sense_Process = mp.Process(target=keyboard_sense, args=(flags,))
+    keyboard_sense_Process = mp.Process(target=keyboard_sense, args=(flags, key_queue))
     # Create audio_mode Process
-    audio_mode_Process = mp.Process(target=audio_mode, args=(flags,))
+    audio_mode_Process = mp.Process(target=audio_mode, args=(flags, ))
     
     # Start Processs
     file_monitor_Process.start()
@@ -334,7 +359,7 @@ if __name__ == "__main__":
     
     time.sleep(1)
     print('-------------------------------')
-    
+    listen_keyboard(on_press=lambda key: press(key, key_queue))
     # Wait until Processs end
     file_monitor_Process.join()
     display_pet_Process.join()
