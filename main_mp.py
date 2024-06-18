@@ -46,6 +46,7 @@ def keyboard_sense(folder_path, flags, message_queue):
     print('Start keyboard_sense')
     while True: 
         # Break or not
+        print('test_key')
         end_flag = flags['end']
         if end_flag:
             print("End keyboard sensing.")
@@ -81,9 +82,15 @@ def animation_falling() -> None:
     """Not defined yet.
     """
     pass
-def show_message() -> None:
+def show_message(message) -> None:
     """Not defined yet.
     """
+    import json
+    with open('./awtrix/notify.json', 'r+') as f:
+        data = json.load(f)
+        data['data'] = message
+        json.dump(data, f, indent=4)
+    os.system('sh index.sh')
     pass
 
 
@@ -119,7 +126,7 @@ def yt_play_video_with_transcript(video_info):
                 break
             # Continue to play music(video)
             cur_time = player.get_time()     # In ms
-            if i < transcript_len and cur_time >= int(transcript[i]['startMs']):
+            if i < transcript_len and cur_time >= int(transcript[i]['startMs']-500):
                 subscript = transcript[i]['text']
                 message_queue.put(subscript)
                 print(subscript)
@@ -136,6 +143,7 @@ def audio_mode(folder_path, flags, message_queue):
     # Process main loop
     print('Start music')
     while True:
+        print('test_mus')
         flags['music_start'] = False
         # Break or not
         end_flag = flags['end']

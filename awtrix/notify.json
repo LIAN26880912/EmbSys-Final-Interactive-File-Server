@@ -1,11 +1,12 @@
 {
   "name": "Test Notification",
+  "fallingText": true, 
   "force": true,
-  "icon":3,
+  "icon":1,
   "moveIcon":true,
-  "repeat":2,
+  "repeat":3,
   "soundfile":1,
-  "data": "Embed System Good",
+  "data": "Hello How Are You, Good Morning",
   "color": [
      0,
      255,
