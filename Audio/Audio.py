@@ -84,7 +84,7 @@ def yt_play_video(video_info):
     # Start playing video.
     if player.play() == 0:   # Successful play
         # You can add a while not player.is_playing() loop if your computer or net (or both) is(are) slow as fucked.
-        time.sleep(0.5)   # Hard coded delay to ensure vlc has been established
+        time.sleep(10)   # Hard coded delay to ensure vlc has been established
         while player.is_playing():
             try:
                 time.sleep(1)
