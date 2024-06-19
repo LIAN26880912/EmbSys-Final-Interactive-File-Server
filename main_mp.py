@@ -9,6 +9,7 @@ from Audio import Audio
 import keyboard
 import time
 from sshkeyboard import listen_keyboard
+import json, requests, re
 
 """ This version may have a better real time performance, but it also has a  loading,
     which may make it even slower than threading ver. if the # of cores isn't enough.
@@ -109,6 +110,22 @@ def animation_file_deleted() -> None:
 def animation_waiting() -> None:
     """Not defined yet.
     """
+    faces = [' >.< ', ' ^.< ', ' >.^ ', ' >.< ', '>.<  ', ' >.< ', '  >.<', ' >.< ']
+    for face in faces:
+        with open('./awtrix/notify.json', 'r+') as f:
+            data = json.load(f)
+            data['speed'] = 1
+            data['data'] = face
+            url = 'http://localhost:7000/api/v3/notify'
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            response = requests.post(url, headers = headers, json = data)
+            print(response.status_code)
+            print(response.json)
+        pass
+
+        
     pass
 def animation_falling() -> None:
     """Not defined yet.
@@ -119,15 +136,24 @@ def show_message(message) -> None:
     """
     # For testing
     print(message)
-    return
+    # return
     
-    import json
-    with open('./awtrix/notify.json', 'r+') as f:
-        data = json.load(f)
-        data['data'] = message
-        json.dump(data, f, indent=4)
-    os.system('sh index.sh')
-    pass
+    # notify.json as a template
+    sentence = re.split(r'(\W+)', message)
+    for word in sentence:
+        if word.strip():  
+            # one word send a post, let it queue in awtrix 
+            with open('./awtrix/notify.json', 'r+') as f:
+                data = json.load(f)
+                data['data'] = word
+                url = 'http://localhost:7000/api/v3/notify'
+                headers = {
+                    'Content-Type': 'application/json'
+                }
+                response = requests.post(url, headers = headers, json = data)
+                print(response.status_code)
+                print(response.json)
+            pass
 
 
 def yt_play_video_with_transcript(video_info, flags, message_queue):
