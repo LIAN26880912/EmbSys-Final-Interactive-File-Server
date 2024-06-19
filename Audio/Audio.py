@@ -45,7 +45,7 @@ def Speech_to_Text():
 
     return echo
 
-def yt_search_video(title):
+def yt_search_video(title, message_queue):
     """ Search Youtube video with the title given.
 
     Args:
@@ -59,10 +59,13 @@ def yt_search_video(title):
     """
     try:
         videosSearch = VideosSearch(title, limit = 1)
-        print(f"Playing {title}.")
-        return (videosSearch.result()['result'][0], 1)
+        result = videosSearch.result()['result'][0]
+        # print(f"Playing : {result['title']}.")
+        message_queue.put(f"Playing : {result['title']}.")
+        return (result, 1)
     except Exception:
         print(f"Search failed when searching {title}.")
+        message_queue.put(f"Search failed when searching {title}.")
         return ({}, 0)   # Null Dict
 
 def yt_play_video(video_info):
@@ -95,7 +98,7 @@ def yt_play_video(video_info):
     else:   # Failed playing
         print("Failed to play the video")
 
-def yt_play_video_with_transcript(video_info):
+def yt_play_video_with_transcript(video_info, flags, message_queue):
     """ Play video with VLC Media Player (With transcript version)
 
     Args:
@@ -117,21 +120,27 @@ def yt_play_video_with_transcript(video_info):
     subscript = ""
     i = 0
     if player.play() == 0:   # Successful play
-        time.sleep(5)
+        time.sleep(0.5)
         print("----------------- Start subscript ---------------------")
         while player.is_playing():
-            try:
-                cur_time = player.get_time()     # In ms
-                if cur_time > 20000: break
-                if i < transcript_len and cur_time >= int(transcript[i]['startMs']):
-                    subscript = transcript[i]['text']
-                    print(subscript)
-                    i += 1
-                time.sleep(0.1)
-            except KeyboardInterrupt:
+            # Break or not
+            end_flag = flags['end']
+            stop_flag = flags['music_stop']
+            if end_flag or stop_flag:
+                player.stop()
                 break
+            # Continue to play music(video)
+            cur_time = player.get_time()     # In ms
+            if i < transcript_len and cur_time >= int(transcript[i]['startMs'])-500:
+                subscript = transcript[i]['text']
+                message_queue.put(subscript)
+                # print(subscript)
+                i += 1
+            # Hold for 0.1 sec
+            time.sleep(0.1)
         print("----------------- End subscript ---------------------")
-        print("Video end")
+        message_queue.put("Video end")
+        # print("Video end")
         # player.stop()
     else:   # Failed playing
         print("Failed to play the video")
@@ -219,7 +228,11 @@ if __name__ == "__main__":
     """
     # title = Speech_to_Text()
     title = "Never Gonna Give You Up"   # You can change it to whatever you like.
+    import multiprocessing as mp
+    mng = mp.Manager()
+    flags = mng.dict({'file_created':False, 'file_deleted':False, 'end':False, 'falling':False, 'music_stop':False, 'music_start':False})
+    message_queue = mp.Queue()
+
+    video_info, status = yt_search_video(title, message_queue)
     
-    video_info, status = yt_search_video(title)
-    
-    yt_play_video_with_transcript(video_info)
+    yt_play_video_with_transcript(video_info, flags, message_queue)
