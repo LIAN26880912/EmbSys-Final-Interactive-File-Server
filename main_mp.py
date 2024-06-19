@@ -117,6 +117,10 @@ def animation_falling() -> None:
 def show_message(message) -> None:
     """Not defined yet.
     """
+    # For testing
+    print(message)
+    return
+    
     import json
     with open('./awtrix/notify.json', 'r+') as f:
         data = json.load(f)
@@ -161,12 +165,13 @@ def yt_play_video_with_transcript(video_info):
             if i < transcript_len and cur_time >= int(transcript[i]['startMs']-500):
                 subscript = transcript[i]['text']
                 message_queue.put(subscript)
-                print(subscript)
+                # print(subscript)
                 i += 1
             # Hold for 0.1 sec
             time.sleep(0.1)
         print("----------------- End subscript ---------------------")
-        print("Video end")
+        message_queue.put("Video end")
+        # print("Video end")
         # player.stop()
     else:   # Failed playing
         print("Failed to play the video")
@@ -194,7 +199,8 @@ def audio_mode(flags):
             continue
         # Input a title
         try:
-            print('Please say any name of song.')
+            message_queue.put('Please say any name of song.')
+            # print('Please say any name of song.')
             title = Audio.Speech_to_Text()
             # Search video
             video_info, status = Audio.yt_search_video(title)
@@ -203,7 +209,8 @@ def audio_mode(flags):
             # Play video
             yt_play_video_with_transcript(video_info)
         except:
-            print('Error when inputting mic...')
+            message_queue.put('Error when inputting mic...')
+            # print('Error when inputting mic...')
             continue
         finally:
             flags['music_start'] = False
@@ -262,7 +269,7 @@ def display_message(flags, message_queue):
         try:
             message =  message_queue.get(timeout=TIME_OUT)
             show_message(message)
-            print(message)
+            # print(message)
             message_queue.task_done()
         except Empty:
             pass
@@ -285,10 +292,10 @@ class MyHandler(FileSystemEventHandler):
         num_deleted = sum([len(files) for r, d, files in os.walk(new_dir)])
         if num_deleted <= 1:
             message = f"{new_dir} has been deleted."
-            print(message)
+            # print(message)
         else:
             message = f"{num_deleted} files have been deleted."
-            print(message)
+            # print(message)
         message_queue.put(message)
         
     def on_created(self, event):
@@ -300,15 +307,16 @@ class MyHandler(FileSystemEventHandler):
         num_created = sum([len(files) for r, d, files in os.walk(new_dir)])
         if num_created <= 1:
             message = f"{new_dir} has been created."
-            print(message)
+            # print(message)
         else:
             message = f"{num_created} files have been created."
-            print(message)
+            # print(message)
         message_queue.put(message)
 
     def on_modified(self, event):
         if not event.is_directory and time.time()-self.last_modified > 1:
-            print(f"File modified: {event.src_path}")
+            message_queue.put(f"File modified: {event.src_path}")
+            # print(f"File modified: {event.src_path}")
 
 
 def monitor_Process(folder_path, flags, message_queue):
@@ -373,5 +381,6 @@ if __name__ == "__main__":
     keyboard_sense_Process.join()
     audio_mode_Process.join()
     
-    print("Processs terminated successfully!")
+    show_message("Processs terminated successfully!")
+    # print("Processs terminated successfully!")
     sys.exit(0)
