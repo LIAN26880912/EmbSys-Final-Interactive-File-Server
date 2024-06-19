@@ -128,53 +128,6 @@ def show_message(message) -> None:
         json.dump(data, f, indent=4)
     os.system('sh index.sh')
     pass
-
-
-def yt_play_video_with_transcript(video_info, flags, message_queue):
-    """ Play video with VLC Media Player (With transcript version)
-
-    Args:
-        video_info (dict): The info of the video (From yt_search_video())
-    """
-    url = video_info['link']
-    video = pafy.new(url)
-    best = video.getbest()
-    playurl = best.url
-    Instance = vlc.Instance()
-    player = Instance.media_player_new()
-    Media = Instance.media_new(playurl)
-    Media.get_mrl()
-    player.set_media(Media)
-    transcript = Transcript.get(url)['segments']
-    transcript_len = len(transcript)
-    
-    # Start playing video.
-    subscript = ""
-    i = 0
-    if player.play() == 0:   # Successful play
-        time.sleep(0.5)
-        print("----------------- Start subscript ---------------------")
-        while player.is_playing():
-            # Break or not
-            end_flag = flags['end']
-            stop_flag = flags['music_stop']
-            if end_flag or stop_flag:
-                break
-            # Continue to play music(video)
-            cur_time = player.get_time()     # In ms
-            if i < transcript_len and cur_time >= int(transcript[i]['startMs']-500):
-                subscript = transcript[i]['text']
-                message_queue.put(subscript)
-                # print(subscript)
-                i += 1
-            # Hold for 0.1 sec
-            time.sleep(0.1)
-        print("----------------- End subscript ---------------------")
-        message_queue.put("Video end")
-        # print("Video end")
-        # player.stop()
-    else:   # Failed playing
-        print("Failed to play the video")
         
 def audio_mode(flags, message_queue):
     """ Audio subprocess. It will start running at the beginning and pool the "music_start" flag.
