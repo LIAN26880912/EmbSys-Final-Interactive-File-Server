@@ -117,11 +117,12 @@ def yt_play_video_with_transcript(video_info):
     subscript = ""
     i = 0
     if player.play() == 0:   # Successful play
-        time.sleep(0.5)
+        time.sleep(5)
         print("----------------- Start subscript ---------------------")
         while player.is_playing():
             try:
                 cur_time = player.get_time()     # In ms
+                if cur_time > 20000: break
                 if i < transcript_len and cur_time >= int(transcript[i]['startMs']):
                     subscript = transcript[i]['text']
                     print(subscript)

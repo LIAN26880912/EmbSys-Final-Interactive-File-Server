@@ -1,0 +1,15 @@
+{
+  "name": "Test Notification",
+  "fallingText": true, 
+  "force": true,
+  "icon":1,
+  "moveIcon":true,
+  "repeat":3,
+  "soundfile":1,
+  "data": "Hello How Are You, Good Morning",
+  "color": [
+     0,
+     255,
+     255
+  ]
+}

@@ -114,9 +114,15 @@ def animation_falling() -> None:
     """Not defined yet.
     """
     pass
-def show_message() -> None:
+def show_message(message) -> None:
     """Not defined yet.
     """
+    import json
+    with open('./awtrix/notify.json', 'r+') as f:
+        data = json.load(f)
+        data['data'] = message
+        json.dump(data, f, indent=4)
+    os.system('sh index.sh')
     pass
 
 
@@ -152,7 +158,7 @@ def yt_play_video_with_transcript(video_info):
                 break
             # Continue to play music(video)
             cur_time = player.get_time()     # In ms
-            if i < transcript_len and cur_time >= int(transcript[i]['startMs']):
+            if i < transcript_len and cur_time >= int(transcript[i]['startMs']-500):
                 subscript = transcript[i]['text']
                 message_queue.put(subscript)
                 print(subscript)
