@@ -121,8 +121,9 @@ def animation_waiting() -> None:
                 'Content-Type': 'application/json'
             }
             response = requests.post(url, headers = headers, json = data)
-            print(response.status_code)
-            print(response.json)
+            # Success!
+            # print(response.status_code)
+            # print(response.json)
         pass
 
         
