@@ -1,8 +1,8 @@
 {
-   "name": "TestApp."
+   "name": "TestApp.",
    "lifetime":5,
    "icon":6,
-   "text": "Totally Awesome"
+   "text": "Totally Awesome",
    "color":[
       60,
       255,

@@ -85,6 +85,23 @@ def keyboard_sense(flags, queue, message_queue):
             # print('There are no keyboard input')
             pass
 
+def emoji2screen(faces) -> None:
+    for face in faces:
+        with open('./awtrix/notify.json', 'r+') as f:
+            data = json.load(f)
+            data['speed'] = 1
+            data['data'] = face
+            data['fallingText'] = False
+            data['force'] = True
+            url = 'http://localhost:7000/api/v3/notify'
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            response = requests.post(url, headers = headers, json = data)
+            # Success!
+            # print(response.status_code)
+            # print(response.json)
+
 def animation_end() -> None:
     """Not defined yet.
     """
@@ -107,24 +124,12 @@ def animation_file_deleted() -> None:
     
     # flags['file_deleted'] = False
     pass
+
 def animation_waiting() -> None:
     """Not defined yet.
     """
     faces = [' >.< ', ' ^.< ', ' >.^ ', ' >.< ', '>.<  ', ' >.< ', '  >.<', ' >.< ']
-    for face in faces:
-        with open('./awtrix/notify.json', 'r+') as f:
-            data = json.load(f)
-            data['speed'] = 130
-            data['data'] = face
-            url = 'http://localhost:7000/api/v3/notify'
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            response = requests.post(url, headers = headers, json = data)
-            # Success!
-            # print(response.status_code)
-            # print(response.json)
-        pass
+    emoji2screen(faces)
 
         
     pass
@@ -144,7 +149,7 @@ def show_message(message) -> None:
     with open('./awtrix/notify.json', 'r+') as f:
         data = json.load(f)
         data['data'] = message
-        # data['speed'] = 65
+        data['speed'] = 20
         url = 'http://localhost:7000/api/v3/notify'
         headers = {
             'Content-Type': 'application/json'
@@ -193,8 +198,9 @@ def audio_mode(flags, message_queue):
         try:
             message_queue.put('Please say any name of song.')
             # print('Please say any name of song.')
-            # title = Audio.Speech_to_Text()
-            title = 'Never gonna give you up'
+            title = Audio.Speech_to_Text()
+            print(f'Seaching {title}....')
+            # title = 'Never gonna give you up'
             # Search video
             video_info, status = Audio.yt_search_video(title, message_queue)
             if not status:
@@ -218,7 +224,8 @@ def display_pet(flags, message_queue):
     """
     print('Start pet')
     while True:
-        time.sleep(SLEEP_DUR)
+        PET_SLEEP = 1
+        time.sleep(PET_SLEEP)
         # Break or not
         end_flag = flags['end']
         # print('Start pet')
@@ -249,7 +256,7 @@ def display_pet(flags, message_queue):
         if file_deleted_flag:
             animation_file_deleted() 
             flags['file_deleted'] = False
-        # animation_waiting()
+        animation_waiting()
         
 def display_message(flags, message_queue):
     """Get a message from the queue and show it on the screen.
@@ -299,7 +306,15 @@ def monitor_Process(folder_path, flags, message_queue):
             break
 
 if __name__ == "__main__":
-    print('good')
+    with open('./awtrix/remove.json', 'r+') as f:
+        data = json.load(f)
+        url = 'http://localhost:7000/api/v3/notify'
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(url, headers = headers, json = data)
+    print(response.status_code)
+    # print('good')
     # TODO: Add IMU related functions & (probably) https request sender.
     
     # listen_keyboard(on_press=press)
@@ -310,8 +325,8 @@ if __name__ == "__main__":
     key_queue = mp.Queue()
 
 
-    folder_path = "."
-    folder_path = os.path.abspath(folder_path)
+    folder_path = "/media/share/"
+    # folder_path = os.path.abspath(folder_path)
     # Create file_monitor Process
     file_monitor_Process = mp.Process(target=monitor_Process, args=(folder_path, flags, message_queue,))
     # Create display_pet Process

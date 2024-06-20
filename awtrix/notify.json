@@ -1,12 +1,12 @@
 {
   "name": "Test Notification",
-  "fallingText": true, 
-  "force": false,
+  "fallingText": false, 
+  "force": true,
   "speed": 65,
-  "icon":1,
+  "repeat": 1,
   "moveIcon":true,
-  "repeat":3,
   "soundfile":1,
+  "noScroll":true,
   "data": "Hello How Are You, Good Morning",
   "color": [
      0,

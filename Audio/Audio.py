@@ -139,7 +139,7 @@ def yt_play_video_with_transcript(video_info, flags, message_queue):
                 flags['music_stop'] = True
             """
             
-            EARLY_TIME = 2000
+            EARLY_TIME = 500
             if i < transcript_len and cur_time >= int(transcript[i]['startMs'])-EARLY_TIME:
                 subscript = transcript[i]['text']
                 message_queue.put(subscript)
