@@ -140,9 +140,18 @@ def show_message(message) -> None:
     # return
     
     # notify.json as a template
-    sentence = re.split(r'(\W+)', message)
-    words = sentence.split(' ')
-    for word in words:
+    # sentence = re.split(r'(\W+)', message)
+    with open('./awtrix/notify.json', 'r+') as f:
+        data = json.load(f)
+        data['data'] = message
+        # data['speed'] = 65
+        url = 'http://localhost:7000/api/v3/notify'
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(url, headers = headers, json = data)
+    """
+    for word in sentence:
         if word.strip():  
             # one word send a post, let it queue in awtrix 
             with open('./awtrix/notify.json', 'r+') as f:
@@ -158,7 +167,7 @@ def show_message(message) -> None:
                 # print(response.status_code)
                 # print(response.json)
             pass
-        
+    """
 def audio_mode(flags, message_queue):
     """ Audio subprocess. It will start running at the beginning and pool the "music_start" flag.
         Once the flag is set, it will start fetching mic input.
@@ -255,6 +264,8 @@ def display_message(flags, message_queue):
         end_flag = flags['end']
         if end_flag:
             print("End displaying message.")
+            message_queue.put("Press ESC to end the process")
+            # print("Press ESC to end the process")
             break
         # Show message (blocking with timeout for efficiency)
         try:
@@ -321,6 +332,7 @@ if __name__ == "__main__":
     
     time.sleep(1)
     print('-------------------------------')
+    
     listen_keyboard(on_press=lambda key: press(key, key_queue))
     # Wait until Processs end
     file_monitor_Process.join()
