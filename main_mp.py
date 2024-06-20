@@ -152,8 +152,9 @@ def show_message(message) -> None:
                     'Content-Type': 'application/json'
                 }
                 response = requests.post(url, headers = headers, json = data)
-                print(response.status_code)
-                print(response.json)
+                # Success!
+                # print(response.status_code)
+                # print(response.json)
             pass
         
 def audio_mode(flags, message_queue):
@@ -214,6 +215,10 @@ def display_pet(flags, message_queue):
             print("End displaying pet.")
             animation_end()
             break
+        # If in music mode, no pet is displayed
+        music_start_flag = flags['music_start']
+        if music_start_flag:
+            continue
         # Sleep or not
         if FileServerLib.check_no_connections():
             animation_sleeping()
@@ -233,7 +238,7 @@ def display_pet(flags, message_queue):
         if file_deleted_flag:
             animation_file_deleted() 
             flags['file_deleted'] = False
-        animation_waiting()
+        # animation_waiting()
         
 def display_message(flags, message_queue):
     """Get a message from the queue and show it on the screen.
