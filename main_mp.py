@@ -113,9 +113,7 @@ def animation_sleeping() -> None:
 def animation_file_created() -> None:
     """Not defined yet.
     """
-    # ......
-    
-    # flags['file_created'] = False
+    emoji2screen(faces)
     pass
 def animation_file_deleted() -> None:
     """Not defined yet.
