@@ -114,7 +114,7 @@ def animation_waiting() -> None:
     for face in faces:
         with open('./awtrix/notify.json', 'r+') as f:
             data = json.load(f)
-            data['speed'] = 1
+            data['speed'] = 130
             data['data'] = face
             url = 'http://localhost:7000/api/v3/notify'
             headers = {
@@ -141,12 +141,14 @@ def show_message(message) -> None:
     
     # notify.json as a template
     sentence = re.split(r'(\W+)', message)
-    for word in sentence:
+    words = sentence.split(' ')
+    for word in words:
         if word.strip():  
             # one word send a post, let it queue in awtrix 
             with open('./awtrix/notify.json', 'r+') as f:
                 data = json.load(f)
                 data['data'] = word
+                # data['speed'] = 65
                 url = 'http://localhost:7000/api/v3/notify'
                 headers = {
                     'Content-Type': 'application/json'
@@ -263,51 +265,6 @@ def display_message(flags, message_queue):
         except Empty:
             pass
 
-class MyHandler(FileSystemEventHandler):
-    def __init__(self, path, flags, message_queue):
-        super().__init__()
-        self.path = path
-        self.last_modified = time.time()
-        self.flags = flags
-        self.message_queue = message_queue
-
-    def on_any_event(self, event):
-        pass
-    
-    def on_deleted(self, event: FileSystemEvent) -> None:
-        # Acquire the lock and set the flag
-        self.flags['file_deleted'] = True
-        # Determine and print system message
-        message = None
-        new_dir = event.src_path.split('/')[-1]
-        num_deleted = sum([len(files) for r, d, files in os.walk(new_dir)])
-        if num_deleted <= 1:
-            message = f"{new_dir} has been deleted."
-            # print(message)
-        else:
-            message = f"{num_deleted} files have been deleted."
-            # print(message)
-        self.message_queue.put(message)
-        
-    def on_created(self, event):
-        # Acquire the lock and set the flag
-        self.flags['file_created'] = True
-        # Determine and print system message
-        message = None
-        new_dir = event.src_path.split('/')[-1]
-        num_created = sum([len(files) for r, d, files in os.walk(new_dir)])
-        if num_created <= 1:
-            message = f"{new_dir} has been created."
-            # print(message)
-        else:
-            message = f"{num_created} files have been created."
-            # print(message)
-        self.message_queue.put(message)
-
-    def on_modified(self, event):
-        if not event.is_directory and time.time()-self.last_modified > 1:
-            self.message_queue.put(f"File modified: {event.src_path}")
-            # print(f"File modified: {event.src_path}")
 
 
 def monitor_Process(folder_path, flags, message_queue):
@@ -317,7 +274,7 @@ def monitor_Process(folder_path, flags, message_queue):
         folder_path (str): The path to the folder you want to monitor
     """
                 
-    event_handler = MyHandler(folder_path, flags, message_queue)
+    event_handler = FileServerLib.MyHandler(folder_path, flags, message_queue)
     observer = Observer()
     observer.schedule(event_handler, path=folder_path, recursive=False)
     observer.start()
