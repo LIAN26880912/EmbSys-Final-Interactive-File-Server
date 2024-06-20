@@ -87,7 +87,7 @@ class MyHandler(FileSystemEventHandler):
         self.message_queue.put(message)
 
     def on_modified(self, event):
-        DELTA_TIME = 2
+        DELTA_TIME = 10
         if not event.is_directory and time.time()-self.last_modified > DELTA_TIME:
             self.message_queue.put(f"File modified: {event.src_path}")
             # print(f"File modified: {event.src_path}")

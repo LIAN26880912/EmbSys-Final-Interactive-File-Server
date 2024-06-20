@@ -10,6 +10,7 @@ import keyboard
 import time
 from sshkeyboard import listen_keyboard
 import json, requests, re
+import random
 
 """ This version may have a better real time performance, but it also has a  loading,
     which may make it even slower than threading ver. if the # of cores isn't enough.
@@ -86,26 +87,29 @@ def keyboard_sense(flags, queue, message_queue):
             pass
 
 def emoji2screen(faces) -> None:
-    for face in faces:
-        with open('./awtrix/notify.json', 'r+') as f:
-            data = json.load(f)
-            data['speed'] = 1
-            data['data'] = face
-            data['fallingText'] = False
-            data['force'] = True
-            url = 'http://localhost:7000/api/v3/notify'
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            response = requests.post(url, headers = headers, json = data)
-            # Success!
-            # print(response.status_code)
-            # print(response.json)
+    face = random.choice(faces)
+    # for face in faces:
+    with open('./awtrix/notify.json', 'r+') as f:
+        data = json.load(f)
+        data['speed'] = 30
+        data['data'] = face
+        data['fallingText'] = False
+        data['force'] = True
+        url = 'http://localhost:7000/api/v3/notify'
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(url, headers = headers, json = data)
+        # Success!
+        # print(response.status_code)
+        # print(response.json)
 
 def animation_end() -> None:
     """Not defined yet.
     """
-    pass
+    faces = ['/ᐠo_oᐟ\ ', '(o3o)']
+    emoji2screen(faces)
+    
 def animation_sleeping() -> None:
     """Not defined yet.
     """
@@ -113,21 +117,30 @@ def animation_sleeping() -> None:
 def animation_file_created() -> None:
     """Not defined yet.
     """
+    print('File has been created.')
+    faces = ['(Owo)', 'ヽ(. p .)/']
     emoji2screen(faces)
     pass
 def animation_file_deleted() -> None:
-    """Not defined yet.
-    """
-    # ......
-    
-    # flags['file_deleted'] = False
-    pass
-
-def animation_waiting() -> None:
-    """Not defined yet.
-    """
-    faces = [' >.< ', ' ^.< ', ' >.^ ', ' >.< ', '>.<  ', ' >.< ', '  >.<', ' >.< ']
+    print('File has been deleted.')
+    faces = ['(`o´=)', '(′゜ω。‵)']
     emoji2screen(faces)
+
+def animation_waiting(face) -> None:
+    """Not defined yet.
+    """
+    # for face in faces:
+    with open('./awtrix/notify.json', 'r+') as f:
+        data = json.load(f)
+        data['speed'] = 2
+        data['data'] = face
+        data['fallingText'] = False
+        data['force'] = False
+        url = 'http://localhost:7000/api/v3/notify'
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(url, headers = headers, json = data)
 
         
     pass
@@ -139,7 +152,7 @@ def show_message(message) -> None:
     """Not defined yet.
     """
     # For testing
-    print(message)
+    # print(message)
     # return
     
     # notify.json as a template
@@ -148,6 +161,7 @@ def show_message(message) -> None:
         data = json.load(f)
         data['data'] = message
         data['speed'] = 20
+        data['force'] = True
         url = 'http://localhost:7000/api/v3/notify'
         headers = {
             'Content-Type': 'application/json'
@@ -220,9 +234,11 @@ def display_pet(flags, message_queue):
     Args:
         flags (dict): shared flags
     """
+    faces = [' >.< ', ' ^.< ', ' >.^ ', '>.<  ', '  >.<']
+    last_time = time.time()
     print('Start pet')
     while True:
-        PET_SLEEP = 1
+        PET_SLEEP = 10
         time.sleep(PET_SLEEP)
         # Break or not
         end_flag = flags['end']
@@ -254,7 +270,10 @@ def display_pet(flags, message_queue):
         if file_deleted_flag:
             animation_file_deleted() 
             flags['file_deleted'] = False
-        animation_waiting()
+        cur_time = time.time()
+        if cur_time - last_time > 5:
+            # animation_waiting(random.choice(faces))
+            last_time = cur_time     
         
 def display_message(flags, message_queue):
     """Get a message from the queue and show it on the screen.
@@ -304,14 +323,14 @@ def monitor_Process(folder_path, flags, message_queue):
             break
 
 if __name__ == "__main__":
-    with open('./awtrix/remove.json', 'r+') as f:
-        data = json.load(f)
-        url = 'http://localhost:7000/api/v3/notify'
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        response = requests.post(url, headers = headers, json = data)
-    print(response.status_code)
+    # with open('./awtrix/remove.json', 'r+') as f:
+    #     data = json.load(f)
+    #     url = 'http://localhost:7000/api/v3/notify'
+    #     headers = {
+    #         'Content-Type': 'application/json'
+    #     }
+    #     response = requests.post(url, headers = headers, json = data)
+    # print(response.status_code)
     # print('good')
     # TODO: Add IMU related functions & (probably) https request sender.
     
