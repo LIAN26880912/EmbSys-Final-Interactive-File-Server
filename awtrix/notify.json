@@ -1,7 +1,8 @@
 {
   "name": "Test Notification",
   "fallingText": true, 
-  "force": true,
+  "force": false,
+  "speed": 65,
   "icon":1,
   "moveIcon":true,
   "repeat":3,
