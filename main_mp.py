@@ -69,6 +69,7 @@ def keyboard_sense(flags, queue, message_queue):
         # Break or not
         end_flag = flags['end']
         if end_flag:
+            message_queue.put("Press ESC to end the process")
             print("End keyboard sensing.")
             break
         try:
@@ -104,27 +105,30 @@ def emoji2screen(faces) -> None:
         # print(response.status_code)
         # print(response.json)
 
-def animation_end() -> None:
+def animation_end(emoji_queue) -> None:
     """Not defined yet.
     """
     faces = ['/ᐠo_oᐟ\ ', '(o3o)']
-    emoji2screen(faces)
+    # emoji2screen(faces)
+    emoji_queue.put(faces)
     
 def animation_sleeping() -> None:
     """Not defined yet.
     """
     pass
-def animation_file_created() -> None:
+def animation_file_created(emoji_queue) -> None:
     """Not defined yet.
     """
     print('File has been created.')
     faces = ['(Owo)', 'ヽ(. p .)/']
-    emoji2screen(faces)
+    # emoji2screen(faces)
+    emoji_queue.put(faces)
     pass
-def animation_file_deleted() -> None:
+def animation_file_deleted(emoji_queue) -> None:
     print('File has been deleted.')
-    faces = ['(`o´=)', '(′゜ω。‵)']
-    emoji2screen(faces)
+    faces = ['T.T', 'Q_Q']
+    # emoji2screen(faces)
+    emoji_queue.put(faces)
 
 def animation_waiting(face) -> None:
     """Not defined yet.
@@ -228,7 +232,7 @@ def audio_mode(flags, message_queue):
             flags['music_start'] = False
 
 
-def display_pet(flags, message_queue):
+def display_pet(flags, message_queue, emoji_queue):
     """Determine the pet's status on the screen. (maybe by changing icon or something)
 
     Args:
@@ -238,14 +242,14 @@ def display_pet(flags, message_queue):
     last_time = time.time()
     print('Start pet')
     while True:
-        PET_SLEEP = 10
-        time.sleep(PET_SLEEP)
+        # PET_SLEEP = 6
+        # time.sleep(PET_SLEEP)
         # Break or not
         end_flag = flags['end']
         # print('Start pet')
         if end_flag:
+            animation_end(emoji_queue)
             print("End displaying pet.")
-            animation_end()
             break
         # If in music mode, no pet is displayed
         music_start_flag = flags['music_start']
@@ -263,19 +267,19 @@ def display_pet(flags, message_queue):
         # File created or not
         file_created_flag = flags['file_created']
         if file_created_flag:
-            animation_file_created()
+            animation_file_created(emoji_queue)
             flags['file_created'] = False
         # File deleted or not
         file_deleted_flag = flags['file_deleted']
         if file_deleted_flag:
-            animation_file_deleted() 
+            animation_file_deleted(emoji_queue) 
             flags['file_deleted'] = False
         cur_time = time.time()
         if cur_time - last_time > 5:
             # animation_waiting(random.choice(faces))
             last_time = cur_time     
         
-def display_message(flags, message_queue):
+def display_message(flags, message_queue, emoji_queue):
     """Get a message from the queue and show it on the screen.
 
     Args:
@@ -286,15 +290,19 @@ def display_message(flags, message_queue):
     while True:
         # Break or not
         end_flag = flags['end']
-        if end_flag:
+        # print(message_queue.qsize())
+        if end_flag and message_queue.empty() and emoji_queue.empty():
             print("End displaying message.")
-            message_queue.put("Press ESC to end the process")
             # print("Press ESC to end the process")
             break
         # Show message (blocking with timeout for efficiency)
         try:
             message =  message_queue.get(timeout=TIME_OUT)
             show_message(message)
+            emoji = emoji_queue.get(timeout=TIME_OUT)
+            MIN_DELAY = 4
+            time.sleep(MIN_DELAY)
+            emoji2screen(emoji)
             # print(message)
             # message_queue.task_done()
         except Empty:
@@ -339,21 +347,22 @@ if __name__ == "__main__":
     mng = mp.Manager()
     flags = mng.dict({'file_created':False, 'file_deleted':False, 'end':False, 'falling':False, 'music_stop':False, 'music_start':False})
     message_queue = mp.Queue()
+    emoji_queue = mp.Queue()
     key_queue = mp.Queue()
 
-
+    message_queue.put('Press z and esc in sequence to terminate the process')
     folder_path = "/media/share/"
     # folder_path = os.path.abspath(folder_path)
     # Create file_monitor Process
     file_monitor_Process = mp.Process(target=monitor_Process, args=(folder_path, flags, message_queue,))
     # Create display_pet Process
-    display_pet_Process = mp.Process(target=display_pet, args=(flags,message_queue,))
+    display_pet_Process = mp.Process(target=display_pet, args=(flags,message_queue,emoji_queue,))
     # Create display_text Process
-    display_message_Process = mp.Process(target=display_message, args=(flags, message_queue,))
+    display_message_Process = mp.Process(target=display_message, args=(flags, message_queue,emoji_queue,))
     # Create keyboard_sense Process
-    keyboard_sense_Process = mp.Process(target=keyboard_sense, args=(flags, key_queue, message_queue))
+    keyboard_sense_Process = mp.Process(target=keyboard_sense, args=(flags, key_queue, message_queue,))
     # Create audio_mode Process
-    audio_mode_Process = mp.Process(target=audio_mode, args=(flags, message_queue))
+    audio_mode_Process = mp.Process(target=audio_mode, args=(flags, message_queue,))
     
     # Start Processs
     file_monitor_Process.start()

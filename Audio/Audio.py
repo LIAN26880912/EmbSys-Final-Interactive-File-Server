@@ -36,14 +36,16 @@ def Speech_to_Text():
     try:
         echo = f"Searching: {r.recognize_google(audio)}."
         print(echo)
+        return echo
     except sr.UnknownValueError:
         echo = f"Google Speech Recognition could not understand audio"
         print(echo)
+        
     except sr.RequestError as e:
         echo = f"No response from Google Speech Recognition service: {e}"
         print(echo)
 
-    return echo
+    raise ValueError('Fail to recognize the speech')
 
 def yt_search_video(title, message_queue):
     """ Search Youtube video with the title given.
@@ -60,7 +62,7 @@ def yt_search_video(title, message_queue):
     try:
         videosSearch = VideosSearch(title, limit = 1)
         result = videosSearch.result()['result'][0]
-        # print(f"Playing : {result['title']}.")
+        print(f"Playing : {result['title']}.")
         message_queue.put(f"Playing : {result['title']}.")
         return (result, 1)
     except Exception:
